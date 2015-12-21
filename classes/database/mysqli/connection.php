@@ -115,9 +115,8 @@ class Database_MySQLi_Connection extends \Database_Connection
 				if ($compress)
 				{
 					$mysqli = mysqli_init();
-					mysqli_options($this->_connection, MYSQLI_OPT_CONNECT_TIMEOUT, 10);
+					mysqli_options($mysqli, MYSQLI_OPT_CONNECT_TIMEOUT, 10);
 					$mysqli->real_connect($hostname, $username, $password, $database, $port, $socket, MYSQLI_CLIENT_COMPRESS);
-
 					$this->_connection = $mysqli;
 				}
 				else
