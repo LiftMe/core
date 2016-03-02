@@ -57,6 +57,11 @@ class Database_Query
 	protected $_connection = null;
 
 	/**
+	 * @var  string|null Value used to shard this query
+	 */
+	protected $_shard_value;
+
+	/**
 	 * Creates a new SQL query of the specified type.
 	 *
 	 * @param string $sql   query string
@@ -207,6 +212,20 @@ class Database_Query
 	}
 
 	/**
+	 * Specifies the shard value for this query
+	 *
+	 * @param  string  $shard_value
+	 *
+	 * @return  $this
+	 */
+	public function shard_value($shard_value)
+	{
+		$this->_shard_value = $shard_value;
+
+		return $this;
+	}
+
+	/**
 	 * Compile the SQL query and return it. Replaces any parameters with their
 	 * given values.
 	 *
@@ -241,15 +260,21 @@ class Database_Query
 	 * Execute the current query on the given database.
 	 *
 	 * @param   mixed   $db Database instance or name of instance
+	 * @param   string|null $shard_value Shard value for this query
 	 *
 	 * @return  object   Database_Result for SELECT queries
 	 * @return  mixed    the insert id for INSERT queries
 	 * @return  integer  number of affected rows for all other queries
 	 */
-	public function execute($db = null)
+	public function execute($db = null, $shard_value = null)
 	{
 		if ( ! is_object($db))
 		{
+			// append shard value onto the db name
+			$shard_value = $shard_value ?: $this->_shard_value;
+			if ($shard_value)
+				$db = $db . ':' . $shard_value;
+
 			// Get the database instance. If this query is a instance of
 			// Database_Query_Builder_Select then use the slave connection if configured
 			$db = \Database_Connection::instance($db, null, ! $this instanceof \Database_Query_Builder_Select);

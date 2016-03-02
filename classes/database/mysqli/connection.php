@@ -13,6 +13,8 @@ namespace Fuel\Core;
 
 
 
+use Notion\Log\Log;
+
 class Database_MySQLi_Connection extends \Database_Connection
 {
 	/**
@@ -160,6 +162,8 @@ class Database_MySQLi_Connection extends \Database_Connection
 	{
 		if ($this->_config['connection']['database'] !== static::$_current_databases[$this->_connection_id])
 		{
+			$this->check_connection();
+
 			if ($this->_connection->select_db($database) !== true)
 			{
 				// Unable to select database
@@ -194,7 +198,7 @@ class Database_MySQLi_Connection extends \Database_Connection
 	public function set_charset($charset)
 	{
 		// Make sure the database is connected
-		$this->_connection or $this->connect();
+		$this->check_connection();
 		$status = $this->_connection->set_charset($charset);
 
 		if ($status === false)
@@ -206,18 +210,7 @@ class Database_MySQLi_Connection extends \Database_Connection
 	public function query($type, $sql, $as_object)
 	{
 		// Make sure the database is connected
-		if ($this->_connection)
-		{
-			// Make sure the connection is still alive
-			if ( ! $this->_connection->ping())
-			{
-				throw new \Database_Exception($this->_connection->error.' [ '.$sql.' ]', $this->_connection->errno);
-			}
-		}
-		else
-		{
-			$this->connect();
-		}
+		$this->check_connection();
 
 		if ( ! empty($this->_config['profiling']))
 		{
@@ -467,7 +460,7 @@ class Database_MySQLi_Connection extends \Database_Connection
 	public function escape($value)
 	{
 		// Make sure the database is connected
-		$this->_connection or $this->connect();
+		$this->check_connection();
 
 		if (($value = $this->_connection->real_escape_string((string) $value)) === false)
 		{
@@ -507,10 +500,57 @@ class Database_MySQLi_Connection extends \Database_Connection
 
 	public function rollback_transaction()
 	{
-		$this->query(0, 'ROLLBACK', false);
-		$this->query(0, 'SET AUTOCOMMIT=1', false);
-		$this->_in_transaction = false;
+		/*
+		 * special case for rollback because it's the step moving the connection out of the transaction.
+		 * without a special case, the rollback would be considered in the transaction and also fail.
+		 */
+
+		try
+		{
+			$this->query(0, 'ROLLBACK', false);
+			$this->query(0, 'SET AUTOCOMMIT=1', false);
+		}
+		catch (\Database_Exception $e)
+		{
+			Log::info('caught dead connection during rollback');
+		}
+
+		$this->disconnect();
 		return true;
 	}
 
+	/**
+	 * Try to re-establish a connection if we find a dead connection before executing a command against mysql
+	 *
+	 * Avoid resetting the connection if in a transaction as the caller would not expect their query
+	 * to successfully run now outside of a transaction.
+	 */
+	protected function check_connection()
+	{
+		// ensure a connection object exists
+		if ($this->_connection)
+		{
+			// ensure connection is alive
+			if ( ! @$this->_connection->ping())
+			{
+				// if in a transaction, we can not reconnect as the connection was just rolled back
+				if ($this->_in_transaction)
+				{
+					throw new \Database_Exception('mysql failed in transaction with error \'' . $this->_connection->error . '\'', $this->_connection->errno);
+				}
+				else
+				{
+					Log::info('found dead mysql connection, reestablishing connection to \'' . $this->_config['connection']['hostname'] . '\' database \'' . $this->_config['connection']['database'] . '\'');
+
+					// disconnect and reconnect to
+					$this->disconnect();
+					$this->connect();
+				}
+			}
+		}
+		else
+		{
+			$this->connect();
+		}
+	}
 }
