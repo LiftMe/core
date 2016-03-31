@@ -11,8 +11,6 @@
 
 namespace Fuel\Core;
 
-
-
 use Notion\Log\Log;
 
 class Database_MySQLi_Connection extends \Database_Connection
@@ -162,9 +160,7 @@ class Database_MySQLi_Connection extends \Database_Connection
 	{
 		if ($this->_config['connection']['database'] !== static::$_current_databases[$this->_connection_id])
 		{
-			$this->check_connection();
-
-			if ($this->_connection->select_db($database) !== true)
+			if ($this->attempt_and_retry('select_db', $database) !== true)
 			{
 				// Unable to select database
 				throw new \Database_Exception($this->_connection->error, $this->_connection->errno);
@@ -198,8 +194,9 @@ class Database_MySQLi_Connection extends \Database_Connection
 	public function set_charset($charset)
 	{
 		// Make sure the database is connected
-		$this->check_connection();
-		$status = $this->_connection->set_charset($charset);
+		$this->_connection or $this->connect();
+
+		$status = $this->attempt_and_retry('set_charset', $charset);
 
 		if ($status === false)
 		{
@@ -209,9 +206,6 @@ class Database_MySQLi_Connection extends \Database_Connection
 
 	public function query($type, $sql, $as_object)
 	{
-		// Make sure the database is connected
-		$this->check_connection();
-
 		if ( ! empty($this->_config['profiling']))
 		{
 			// Get the paths defined in config
@@ -255,7 +249,7 @@ class Database_MySQLi_Connection extends \Database_Connection
 		}
 
 		// Execute the query
-		if (($result = $this->_connection->query($sql)) === false)
+		if (($result = $this->attempt_and_retry('query', $sql)) === false)
 		{
 			if (isset($benchmark))
 			{
@@ -459,10 +453,9 @@ class Database_MySQLi_Connection extends \Database_Connection
 
 	public function escape($value)
 	{
-		// Make sure the database is connected
-		$this->check_connection();
+		$escaped_value = $this->attempt_and_retry('real_escape_string', ((string) $value));
 
-		if (($value = $this->_connection->real_escape_string((string) $value)) === false)
+		if ($escaped_value === false)
 		{
 			throw new \Database_Exception($this->_connection->error, $this->_connection->errno);
 		}
@@ -520,6 +513,40 @@ class Database_MySQLi_Connection extends \Database_Connection
 	}
 
 	/**
+	 * Attempts to execute a method on the mysqli connection. If a connection error is encountered,
+	 * it attempts to re-connect and retry the method one additional time before failing.
+	 *
+	 * @param string $method
+	 * @return mixed
+	 */
+	protected function attempt_and_retry($method)
+	{
+		$params = func_get_args();
+		array_shift($params);
+
+		try
+		{
+			return call_user_func_array([$this->_connection, $method], $params);
+		}
+		catch (PhpErrorException $exception)
+		{
+			// attempt to reconnect since it's likely the connection died
+			$this->check_connection();
+
+			// retry the command one more time
+			try
+			{
+				return call_user_func_array([$this->_connection, $method], $params);
+			}
+			// if an error was generated again, translate into a Database_Exception
+			catch (PhpErrorException $exception)
+			{
+				throw new \Database_Exception($this->_connection->error, $this->_connection->errno);
+			}
+		}
+	}
+
+	/**
 	 * Try to re-establish a connection if we find a dead connection before executing a command against mysql
 	 *
 	 * Avoid resetting the connection if in a transaction as the caller would not expect their query
@@ -536,11 +563,11 @@ class Database_MySQLi_Connection extends \Database_Connection
 				// if in a transaction, we can not reconnect as the connection was just rolled back
 				if ($this->_in_transaction)
 				{
-					throw new \Database_Exception('mysql failed in transaction with error \'' . $this->_connection->error . '\'', $this->_connection->errno);
+					throw new \Database_Exception('MySQL failed in transaction with error \'' . $this->_connection->error . '\'', $this->_connection->errno);
 				}
 				else
 				{
-					Log::info('found dead mysql connection, reestablishing connection to \'' . $this->_config['connection']['hostname'] . '\' database \'' . $this->_config['connection']['database'] . '\'');
+					Log::info('Found dead mysql connection, reestablishing connection to \'' . $this->_config['connection']['hostname'] . '\' database \'' . $this->_config['connection']['database'] . '\'');
 
 					// disconnect and reconnect to
 					$this->disconnect();
