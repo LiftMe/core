@@ -461,7 +461,7 @@ class Database_MySQLi_Connection extends \Database_Connection
 		}
 
 		// SQL standard is to use single-quotes for all values
-		return "'$value'";
+		return "'$escaped_value'";
 	}
 
 	public function error_info()
