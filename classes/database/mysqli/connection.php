@@ -206,6 +206,9 @@ class Database_MySQLi_Connection extends \Database_Connection
 
 	public function query($type, $sql, $as_object)
 	{
+		// Make sure the database is connected
+		$this->_connection or $this->connect();
+
 		if ( ! empty($this->_config['profiling']))
 		{
 			// Get the paths defined in config
