@@ -456,6 +456,9 @@ class Database_MySQLi_Connection extends \Database_Connection
 
 	public function escape($value)
 	{
+		// Make sure the database is connected
+		$this->_connection or $this->connect();
+
 		$escaped_value = $this->attempt_and_retry('real_escape_string', ((string) $value));
 
 		if ($escaped_value === false)
