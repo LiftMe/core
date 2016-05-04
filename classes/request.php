@@ -11,6 +11,7 @@
  */
 
 namespace Fuel\Core;
+use Notion\App\Api\Version_Loader;
 
 /**
  * The Request class is used to create and manage new and existing requests.  There
@@ -376,6 +377,8 @@ class Request
 			{
 				$method_prefix = $this->method.'_';
 				$class = $this->controller;
+				if ($controller_override = (new Version_Loader())->get_class_name($class))
+					$class = $controller_override;
 
 				// Allow override of method params from execute
 				if (is_array($method_params))
