@@ -23,7 +23,6 @@ class Lang_Db implements Lang_Interface
 	 * @param   string  $identifier  Lang identifier name
 	 * @param   array   $languages  Languages to scan for the lang file
 	 * @param   array   $vars  Variables to parse in the data retrieved
-	 * @return  void
 	 */
 	public function __construct($identifier = null, $languages = array(), $vars = array())
 	{
@@ -47,6 +46,7 @@ class Lang_Db implements Lang_Interface
 	 *
 	 * @param   bool  $overwrite  Whether to overwrite existing values
 	 * @return  array  the language array
+	 * @throws  \Database_Exception
 	 */
 	public function load($overwrite = false)
 	{
@@ -80,7 +80,6 @@ class Lang_Db implements Lang_Interface
 				}
 			}
 		}
-
 
 		return $lang;
 	}
@@ -153,7 +152,7 @@ class Lang_Db implements Lang_Interface
 	public function save($identifier, $contents)
 	{
 		// get the language and the identifier
-		list ($language, $identifier) = explode(DS, $identifier, 2);
+		list($language, $identifier) = explode(DS, $identifier, 2);
 		$identifier = basename($identifier, '.db');
 
 		// prep the contents

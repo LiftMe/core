@@ -1,21 +1,20 @@
 <?php
 /**
- * Database query wrapper.
+ * Part of the Fuel framework.
  *
- * @package    Fuel/Database
- * @category   Query
- * @author     Kohana Team
- * @copyright  (c) 2008-2009 Kohana Team
- * @license    http://kohanaphp.com/license
+ * @package    Fuel
+ * @version    1.8
+ * @author     Fuel Development Team
+ * @license    MIT License
+ * @copyright  2010 - 2016 Fuel Development Team
+ * @copyright  2008 - 2009 Kohana Team
+ * @link       http://fuelphp.com
  */
 
 namespace Fuel\Core;
 
-
-
 class Database_Query
 {
-
 	/**
 	 * @var  int  Query type
 	 */
@@ -134,7 +133,7 @@ class Database_Query
 	/**
 	 * Returns results as objects
 	 *
-	 * @param   string $class classname or true for stdClass
+	 * @param   mixed $class classname or true for stdClass
 	 *
 	 * @return  $this
 	 */
@@ -235,6 +234,11 @@ class Database_Query
 	 */
 	public function compile($db = null)
 	{
+		if ($this->_connection !== null and $db === null)
+		{
+			$db = $this->_connection;
+		}
+
 		if ( ! $db instanceof \Database_Connection)
 		{
 			// Get the database instance
@@ -268,6 +272,11 @@ class Database_Query
 	 */
 	public function execute($db = null, $shard_value = null)
 	{
+		if ($this->_connection !== null and $db === null)
+		{
+			$db = $this->_connection;
+		}
+
 		if ( ! is_object($db))
 		{
 			// append shard value onto the db name
@@ -283,18 +292,36 @@ class Database_Query
 		// Compile the SQL query
 		$sql = $this->compile($db);
 
-		switch(strtoupper(substr(ltrim($sql,'('), 0, 6)))
+		// make sure we have a SQL type to work with
+		if (is_null($this->_type))
 		{
-			case 'SELECT':
-				$this->_type = \DB::SELECT;
-				break;
-			case 'INSERT':
-			case 'CREATE':
-				$this->_type = \DB::INSERT;
-				break;
+			// get the SQL statement type without having to duplicate the entire statement
+			$stmt = preg_split("/[\s]+/", substr($sql, 0, 10), 2);
+			switch(strtoupper(reset($stmt)))
+			{
+				case 'DESCRIBE':
+				case 'EXECUTE':
+				case 'EXPLAIN':
+				case 'SELECT':
+				case 'SHOW':
+					$this->_type = \DB::SELECT;
+					break;
+				case 'INSERT':
+				case 'REPLACE':
+					$this->_type = \DB::INSERT;
+					break;
+				case 'UPDATE':
+					$this->_type = \DB::UPDATE;
+					break;
+				case 'DELETE':
+					$this->_type = \DB::DELETE;
+					break;
+				default:
+					$this->_type = 0;
+			}
 		}
 
-		if ($db->caching() and ! empty($this->_lifetime) and $this->_type === DB::SELECT)
+		if ($db->caching() and ! empty($this->_lifetime) and $this->_type === \DB::SELECT)
 		{
 			$cache_key = empty($this->_cache_key) ?
 				'db.'.md5('Database_Connection::query("'.$db.'", "'.$sql.'")') : $this->_cache_key;
@@ -302,9 +329,9 @@ class Database_Query
 			try
 			{
 				$result = $cache->get();
-				return new Database_Result_Cached($result, $sql, $this->_as_object);
+				return new \Database_Result_Cached($result, $sql, $this->_as_object);
 			}
-			catch (CacheNotFoundException $e) {}
+			catch (\CacheNotFoundException $e) {}
 		}
 
 		// Execute the query

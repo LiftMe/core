@@ -16,7 +16,6 @@ abstract class Config_File implements Config_Interface
 	 *
 	 * @param   string  $file  Config file name
 	 * @param   array   $vars  Variables to parse in the file
-	 * @return  void
 	 */
 	public function __construct($file = null, $vars = array())
 	{
@@ -34,6 +33,7 @@ abstract class Config_File implements Config_Interface
 	 * Loads the config file(s).
 	 *
 	 * @param   bool  $overwrite  Whether to overwrite existing values
+	 * @param   bool  $cache      Whether to cache this path or not
 	 * @return  array  the config array
 	 */
 	public function load($overwrite = false, $cache = true)
@@ -112,8 +112,9 @@ abstract class Config_File implements Config_Interface
 	/**
 	 * Finds the given config files
 	 *
-	 * @param   bool  $multiple  Whether to load multiple files or not
+	 * @param   bool  $cache  Whether to cache this path or not
 	 * @return  array
+	 * @throws  \ConfigException
 	 */
 	protected function find_file($cache = true)
 	{
@@ -140,8 +141,8 @@ abstract class Config_File implements Config_Interface
 	/**
 	 * Formats the output and saved it to disc.
 	 *
-	 * @param   $contents  $contents    config array to save
-	 * @return  bool       \File::update result
+	 * @param   array $contents    config array to save
+	 * @return  bool               \File::update result
 	 */
 	public function save($contents)
 	{
@@ -164,7 +165,7 @@ abstract class Config_File implements Config_Interface
 					$this->file = substr($this->file, $pos+2);
 
 					// strip the classes directory as we need the module root
-					$path = substr($path,0, -8).'config'.DS.$this->file.$this->ext;
+					$path = substr($path, 0, -8).'config'.DS.$this->file.$this->ext;
 				}
 				else
 				{
@@ -200,7 +201,7 @@ abstract class Config_File implements Config_Interface
 			catch (\PhpErrorException $e)
 			{
 				// if we get something else then a chmod error, bail out
-				if (substr($e->getMessage(),0,8) !== 'chmod():')
+				if (substr($e->getMessage(), 0, 8) !== 'chmod():')
 				{
 					throw new $e;
 				}
@@ -211,11 +212,13 @@ abstract class Config_File implements Config_Interface
 
 	/**
 	 * Must be implemented by child class. Gets called for each file to load.
+	 *
+	 * @param string  $file  the path to the file
 	 */
 	abstract protected function load_file($file);
 
 	/**
-	 * Must be impletmented by child class. Gets called when saving a config file.
+	 * Must be implemented by child class. Gets called when saving a config file.
 	 *
 	 * @param   array   $contents  config array to save
 	 * @return  string  formatted output

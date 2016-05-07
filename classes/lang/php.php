@@ -28,7 +28,7 @@ class Lang_Php extends \Lang_File
 	public static function _init()
 	{
 		// do we have Opcache active?
-		static::$uses_opcache = PHP_VERSION_ID >= 50500 and function_exists('opcache_invalidate');
+		static::$uses_opcache = (PHP_VERSION_ID >= 50500 and function_exists('opcache_invalidate'));
 
 		// do we have APC active?
 		static::$uses_apc = function_exists('apc_compile_file');
@@ -72,7 +72,7 @@ class Lang_Php extends \Lang_File
 						$identifier = substr($identifier, $pos+2);
 
 						// strip the classes directory as we need the module root
-						$file = substr($file,0, -8).'lang'.DS.$identifier;
+						$file = substr($file, 0, -8).'lang'.DS.$identifier;
 					}
 					else
 					{
@@ -111,7 +111,7 @@ class Lang_Php extends \Lang_File
 	/**
 	 * Returns the formatted language file contents.
 	 *
-	 * @param   array   $content  config array
+	 * @param   array   $contents  config array
 	 * @return  string  formatted config file contents
 	 */
 	protected function export_format($contents)

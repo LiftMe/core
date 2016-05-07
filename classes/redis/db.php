@@ -3,10 +3,10 @@
  * Part of the Fuel framework.
  *
  * @package    Fuel
- * @version    1.7
+ * @version    1.8
  * @author     Fuel Development Team
  * @license    MIT License
- * @copyright  2010 - 2014 Fuel Development Team
+ * @copyright  2010 - 2016 Fuel Development Team
  * @link       http://fuelphp.com
  */
 
@@ -22,9 +22,7 @@
 
 namespace Fuel\Core;
 
-
 class RedisException extends \FuelException {}
-
 
 /**
  * Redisent, a Redis interface for the modest among us
@@ -38,6 +36,10 @@ class Redis_Db
 
 	/**
 	 * Get an instance of the Redis class
+	 *
+	 * @param   string  $name
+	 * @return  mixed
+	 * @throws  \RedisException
 	 */
 	public static function instance($name = 'default')
 	{
@@ -53,6 +55,11 @@ class Redis_Db
 
 	/**
 	 * create an instance of the Redis class
+	 *
+	 * @param   string  $name
+	 * @param   array   $config
+	 * @return  mixed
+	 * @throws  \RedisException
 	 */
 	public static function forge($name = 'default', $config = array())
 	{
@@ -90,6 +97,9 @@ class Redis_Db
 
 	/**
 	 * Create a new Redis instance using the configuration values supplied
+	 *
+	 * @param   array  $config
+	 * @throws  \RedisException
 	 */
 	public function  __construct(array $config = array())
 	{
@@ -178,10 +188,9 @@ class Redis_Db
 	 * Alias for the redis PSUBSCRIBE command. It allows you to listen, and
 	 * have the callback called for every response.
 	 *
-	 * @params  string    pattern to subscribe to
-	 * @params  callable  callback, to process the responses
-	 *
-	 * @throws  RedisException  if writing the command failed
+	 * @param   string    $pattern   pattern to subscribe to
+	 * @param   callable  $callback  callback, to process the responses
+	 * @throws  \RedisException  if writing the command failed
 	 */
     public function psubscribe($pattern, $callback)
     {
@@ -215,6 +224,10 @@ class Redis_Db
     }
 
 	/**
+	 * @param   $name
+	 * @param   $args
+	 * @return  $this|array
+	 * @throws  \RedisException
 	 */
 	public function __call($name, $args)
 	{
@@ -247,7 +260,7 @@ class Redis_Db
 		{
 			// error reply
 			case '-':
-				throw new \RedisException(trim(substr($reply, 4)));
+				throw new \RedisException(trim(substr($reply, 1)));
 				break;
 
 			// inline reply

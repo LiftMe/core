@@ -40,15 +40,44 @@ if ( ! is_file(VENDORPATH.'autoload.php'))
 }
 require VENDORPATH.'autoload.php';
 
-// Load in the Fuel autoloader
-require COREPATH.'classes'.DIRECTORY_SEPARATOR.'autoloader.php';
+if (class_exists('AspectMock\Kernel'))
+{
+	// Configure AspectMock
+	$kernel = \AspectMock\Kernel::getInstance();
+	$kernel->init(array(
+		'debug' => true,
+		'appDir' => __DIR__.'/../',
+		'includePaths' => array(
+			APPPATH, COREPATH, PKGPATH,
+		),
+		'excludePaths' => array(
+			APPPATH.'tests', COREPATH.'tests',
+		),
+		'cacheDir' => APPPATH.'tmp/AspectMock',
+	));
+
+	// Load in the Fuel autoloader
+	$kernel->loadFile(COREPATH.'classes'.DIRECTORY_SEPARATOR.'autoloader.php');
+}
+else
+{
+	// Load in the Fuel autoloader
+	require COREPATH.'classes'.DIRECTORY_SEPARATOR.'autoloader.php';
+}
+
 class_alias('Fuel\\Core\\Autoloader', 'Autoloader');
 
 // Boot the app
 require_once APPPATH.'bootstrap.php';
 
 // Set test mode
-Fuel::$is_test = true;
+\Fuel::$is_test = true;
+
+// Ad hoc fix for AspectMock error
+if (class_exists('AspectMock\Kernel'))
+{
+	class_exists('Errorhandler');
+}
 
 // Import the TestCase class
 import('testcase');

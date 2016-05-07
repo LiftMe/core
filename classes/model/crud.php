@@ -3,10 +3,10 @@
  * Part of the Fuel framework.
  *
  * @package    Fuel
- * @version    1.7
+ * @version    1.8
  * @author     Fuel Development Team
  * @license    MIT License
- * @copyright  2010 - 2014 Fuel Development Team
+ * @copyright  2010 - 2016 Fuel Development Team
  * @link       http://fuelphp.com
  */
 
@@ -14,7 +14,6 @@ namespace Fuel\Core;
 
 class Model_Crud extends \Model implements \Iterator, \ArrayAccess, \Serializable, \Sanitization
 {
-
 	/**
 	 * @var  string  $_table_name  The table name (must set this in your Model)
 	 */
@@ -105,8 +104,9 @@ class Model_Crud extends \Model implements \Iterator, \ArrayAccess, \Serializabl
 	/**
 	 * Finds a row with the given column value.
 	 *
-	 * @param   mixed  $column  The column to search
-	 * @param   mixed  $value   The value to find
+	 * @param   mixed   $column    The column to search
+	 * @param   mixed   $value     The value to find
+	 * @param   string  $operator
 	 * @return  null|object  Either null or a new Model object
 	 */
 	public static function find_one_by($column, $value = null, $operator = '=')
@@ -248,11 +248,12 @@ class Model_Crud extends \Model implements \Iterator, \ArrayAccess, \Serializabl
 	/**
 	 * Count all of the rows in the table.
 	 *
-	 * @param   string  Column to count by
-	 * @param   bool    Whether to count only distinct rows (by column)
-	 * @param   array   Query where clause(s)
-	 * @param   string  Column to group by
+	 * @param   string  $column    Column to count by
+	 * @param   bool    $distinct  Whether to count only distinct rows (by column)
+	 * @param   array   $where     Query where clause(s)
+	 * @param   string  $group_by  Column to group by
 	 * @return  int     The number of rows OR false
+	 * @throws \FuelException
 	 */
 	public static function count($column = null, $distinct = true, $where = array(), $group_by = null)
 	{
@@ -311,7 +312,7 @@ class Model_Crud extends \Model implements \Iterator, \ArrayAccess, \Serializabl
 	 * @param   string  $name  The method name
 	 * @param   string  $args  The method args
 	 * @return  mixed   Based on static::$return_type
-	 * @throws  BadMethodCallException
+	 * @throws  \BadMethodCallException
 	 */
 	public static function __callStatic($name, $args)
 	{
@@ -329,12 +330,12 @@ class Model_Crud extends \Model implements \Iterator, \ArrayAccess, \Serializabl
 	/**
 	 * Get the connection to use for reading or writing
 	 *
-	 * @param  boolean  $writeable Get a writeable connection
+	 * @param  boolean  $writable Get a writable connection
 	 * @return Database_Connection
 	 */
-	protected static function get_connection($writeable = false)
+	protected static function get_connection($writable = false)
 	{
-		if ($writeable and isset(static::$_write_connection))
+		if ($writable and isset(static::$_write_connection))
 		{
 			return static::$_write_connection;
 		}
@@ -401,16 +402,15 @@ class Model_Crud extends \Model implements \Iterator, \ArrayAccess, \Serializabl
 	 * Sets up the object.
 	 *
 	 * @param   array  $data  The data array
-	 * @return  void
 	 */
 	public function __construct(array $data = array())
 	{
+		$this->set($data);
+
 		if (isset($this->_data[static::primary_key()]))
 		{
 			$this->is_new(false);
 		}
-
-		$this->set($data);
 	}
 
 	/**
@@ -493,8 +493,9 @@ class Model_Crud extends \Model implements \Iterator, \ArrayAccess, \Serializabl
 	 * Saves the object to the database by either creating a new record
 	 * or updating an existing record. Sets the default values if set.
 	 *
-	 * @param   bool   $validate  wether to validate the input
-	 * @return  mixed  Rows affected and or insert ID
+	 * @param   bool   $validate  whether to validate the input
+	 * @return  array|int  Rows affected and or insert ID
+	 * @throws \Exception
 	 */
 	public function save($validate = true)
 	{
@@ -630,7 +631,7 @@ class Model_Crud extends \Model implements \Iterator, \ArrayAccess, \Serializabl
 	/**
 	 * Either checks if the record is frozen or sets whether it is frozen or not.
 	 *
-	 * @param   bool|null  $new  Whether this is a frozen record
+	 * @param   bool|null  $frozen  Whether this is a frozen record
 	 * @return  bool|$this
 	 */
 	public function frozen($frozen = null)
@@ -793,9 +794,9 @@ class Model_Crud extends \Model implements \Iterator, \ArrayAccess, \Serializabl
 	}
 
 	/**
-	 * Returns wether the instance will pass validation.
+	 * Returns whether the instance will pass validation.
 	 *
-	 * @return  bool  wether the instance passed validation
+	 * @return  bool  whether the instance passed validation
 	 */
 	public function validates()
 	{
@@ -944,7 +945,8 @@ class Model_Crud extends \Model implements \Iterator, \ArrayAccess, \Serializabl
 	/**
 	 * Serializable implementation: unserialize
 	 *
-	 * @return  array  model data
+	 * @param   string  $data
+	 * @return  array   model data
 	 */
 	public function unserialize($data)
 	{

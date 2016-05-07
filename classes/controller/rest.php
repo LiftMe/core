@@ -4,7 +4,6 @@ namespace Fuel\Core;
 
 abstract class Controller_Rest extends \Controller
 {
-
 	/**
 	 * @var  null|string  Set this in a controller to use a default format
 	 */
@@ -36,9 +35,9 @@ abstract class Controller_Rest extends \Controller
 	protected $format = null;
 
 	/**
-	 * @var  integer  response http status
+	 * @var  integer  default response http status
 	 */
-	protected $http_status = null;
+	protected $http_status = 200;
 
 	/**
 	 * @var  string  xml basenode name
@@ -83,7 +82,7 @@ abstract class Controller_Rest extends \Controller
 
 		// If the response is a Response object, we will use their
 		// instead of ours.
-		if ( ! $response instanceof Response)
+		if ( ! $response instanceof \Response)
 		{
 			$response = $this->response;
 		}
@@ -97,8 +96,9 @@ abstract class Controller_Rest extends \Controller
 	 * Requests are not made to methods directly The request will be for an "object".
 	 * this simply maps the object and method to the correct Controller method.
 	 *
-	 * @param  string
-	 * @param  array
+	 * @param  string $resource
+	 * @param  array $arguments
+	 * @return bool|mixed
 	 */
 	public function router($resource, $arguments)
 	{
@@ -217,7 +217,9 @@ abstract class Controller_Rest extends \Controller
 			if (\Fuel::$env == \Fuel::PRODUCTION)
 			{
 				// not acceptable in production
-				$http_status = 406;
+				if ($http_status == 200)
+				{	$http_status = 406;
+				}
 				$this->response->body('The requested REST method returned an array or object, which is not compatible with the output format "'.$this->format.'"');
 			}
 			else
@@ -259,6 +261,12 @@ abstract class Controller_Rest extends \Controller
 	 */
 	protected function _detect_format()
 	{
+		// A format has been passed as a named parameter in the route
+		if ($this->param('format') and array_key_exists($this->param('format'), $this->_supported_formats))
+		{
+			return $this->param('format');
+		}
+
 		// A format has been passed as an argument in the URL and it is supported
 		if (\Input::param('format') and array_key_exists(\Input::param('format'), $this->_supported_formats))
 		{
@@ -311,12 +319,12 @@ abstract class Controller_Rest extends \Controller
 			});
 
 			// Check each of the acceptable formats against the supported formats
+			$find = array('\*', '/');
+			$replace = array('.*', '\/');
 			foreach ($acceptable as $pattern => $quality)
 			{
 				// The Accept header can contain wildcards in the format
-				$find = array('*', '/');
-				$replace = array('.*', '\/');
-				$pattern = '/^' . str_replace($find, $replace, $pattern) . '$/';
+				$pattern = '/^' . str_replace($find, $replace, preg_quote($pattern)) . '$/';
 				foreach ($this->_supported_formats as $format => $mime)
 				{
 					if (preg_match($pattern, $mime))

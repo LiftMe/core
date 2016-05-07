@@ -3,10 +3,10 @@
  * Part of the Fuel framework.
  *
  * @package    Fuel
- * @version    1.7
+ * @version    1.8
  * @author     Fuel Development Team
  * @license    MIT License
- * @copyright  2010 - 2014 Fuel Development Team
+ * @copyright  2010 - 2016 Fuel Development Team
  * @link       http://fuelphp.com
  */
 
@@ -35,12 +35,12 @@ class Input
 	protected static $detected_ext = null;
 
 	/**
-	 * @var  $input  All of the input (GET, POST, PUT, DELETE, PATCH)
+	 * @var  array  $input  All of the input (GET, POST, PUT, DELETE, PATCH)
 	 */
 	protected static $input = null;
 
 	/**
-	 * @var  $put_patch_delete  All of the put or delete vars
+	 * @var  array  $put_patch_delete  All of the put or delete vars
 	 */
 	protected static $put_patch_delete = null;
 
@@ -62,6 +62,8 @@ class Input
 	/**
 	 * Get the request body interpreted as JSON.
 	 *
+	 * @param   mixed  $index
+	 * @param   mixed  $default
 	 * @return  array  parsed request body content.
 	 */
 	public static function json($index = null, $default = null)
@@ -73,6 +75,8 @@ class Input
 	/**
 	 * Get the request body interpreted as XML.
 	 *
+	 * @param   mixed  $index
+	 * @param   mixed  $default
 	 * @return  array  parsed request body content.
 	 */
 	public static function xml($index = null, $default = null)
@@ -96,6 +100,7 @@ class Input
 	 * Detects and returns the current URI based on a number of different server
 	 * variables.
 	 *
+	 * @throws \FuelException
 	 * @return  string
 	 */
 	public static function uri()
@@ -107,7 +112,7 @@ class Input
 
 		if (\Fuel::$is_cli)
 		{
-			if ($uri = \Cli::option('uri') !== null)
+			if (($uri = \Cli::option('uri')) !== null)
 			{
 				static::$detected_uri = $uri;
 			}
@@ -199,7 +204,7 @@ class Input
 			if ( ! empty($ext))
 			{
 				// if it has a slash in it, it's a URI segment with a dot in it
-				if (strpos($ext,'/') === false)
+				if (strpos($ext, '/') === false)
 				{
 					static::$detected_ext = ltrim($ext, '.');
 
@@ -232,7 +237,8 @@ class Input
 	/**
 	 * Get the public ip address of the user.
 	 *
-	 * @return  string
+	 * @param   string $default
+	 * @return  array|string
 	 */
 	public static function ip($default = '0.0.0.0')
 	{
@@ -242,8 +248,8 @@ class Input
 	/**
 	 * Get the real ip address of the user.  Even if they are using a proxy.
 	 *
-	 * @param	string	the default to return on failure
-	 * @param	bool	exclude private and reserved IPs
+	 * @param	string	$default           the default to return on failure
+	 * @param	bool	$exclude_reserved  exclude private and reserved IPs
 	 * @return  string  the real ip address of the user
 	 */
 	public static function real_ip($default = '0.0.0.0', $exclude_reserved = false)
@@ -316,6 +322,7 @@ class Input
 	/**
 	 * Return's the referrer
 	 *
+	 * @param   string $default
 	 * @return  string
 	 */
 	public static function referrer($default = '')
@@ -326,6 +333,7 @@ class Input
 	/**
 	 * Return's the input method used (GET, POST, DELETE, etc.)
 	 *
+	 * @param   string $default
 	 * @return  string
 	 */
 	public static function method($default = 'GET')
@@ -339,17 +347,18 @@ class Input
 		// if called before a request is active, fall back to the global server setting
 		if (\Config::get('security.allow_x_headers', false))
 		{
-			return \Input::server('HTTP_X_HTTP_METHOD_OVERRIDE', \Input::server('REQUEST_METHOD', $default));
+			return static::server('HTTP_X_HTTP_METHOD_OVERRIDE', static::server('REQUEST_METHOD', $default));
 		}
 		else
 		{
-			return \Input::server('REQUEST_METHOD', $default);
+			return static::server('REQUEST_METHOD', $default);
 		}
 	}
 
 	/**
 	 * Return's the user agent
 	 *
+	 * @param   $default
 	 * @return  string
 	 */
 	public static function user_agent($default = '')
@@ -383,8 +392,8 @@ class Input
 	/**
 	 * Fetch an item from the POST array
 	 *
-	 * @param   string  The index key
-	 * @param   mixed   The default value
+	 * @param   string  $index    The index key
+	 * @param   mixed   $default  The default value
 	 * @return  string|array
 	 */
 	public static function post($index = null, $default = null)
@@ -395,8 +404,8 @@ class Input
 	/**
 	 * Fetch an item from the php://input for put arguments
 	 *
-	 * @param   string  The index key
-	 * @param   mixed   The default value
+	 * @param   string  $index    The index key
+	 * @param   mixed   $default  The default value
 	 * @return  string|array
 	 */
 	public static function put($index = null, $default = null)
@@ -408,8 +417,8 @@ class Input
 	/**
 	 * Fetch an item from the php://input for patch arguments
 	 *
-	 * @param   string  The index key
-	 * @param   mixed   The default value
+	 * @param   string  $index    The index key
+	 * @param   mixed   $default  The default value
 	 * @return  string|array
 	 */
 	public static function patch($index = null, $default = null)
@@ -421,8 +430,8 @@ class Input
 	/**
 	 * Fetch an item from the php://input for delete arguments
 	 *
-	 * @param   string  The index key
-	 * @param   mixed   The default value
+	 * @param   string  $index    The index key
+	 * @param   mixed   $default  The default value
 	 * @return  string|array
 	 */
 	public static function delete($index = null, $default = null)
@@ -434,8 +443,8 @@ class Input
 	/**
 	 * Fetch an item from the FILE array
 	 *
-	 * @param   string  The index key
-	 * @param   mixed   The default value
+	 * @param   string  $index    The index key
+	 * @param   mixed   $default  The default value
 	 * @return  string|array
 	 */
 	public static function file($index = null, $default = null)
@@ -446,8 +455,8 @@ class Input
 	/**
 	 * Fetch an item from either the GET, POST, PUT, PATCH or DELETE array
 	 *
-	 * @param   string  The index key
-	 * @param   mixed   The default value
+	 * @param   string  $index    The index key
+	 * @param   mixed   $default  The default value
 	 * @return  string|array
 	 */
 	public static function param($index = null, $default = null)
@@ -459,8 +468,8 @@ class Input
 	/**
 	 * Fetch an item from the COOKIE array
 	 *
-	 * @param    string  The index key
-	 * @param    mixed   The default value
+	 * @param    string  $index    The index key
+	 * @param    mixed   $default  The default value
 	 * @return   string|array
 	 */
 	public static function cookie($index = null, $default = null)
@@ -471,8 +480,8 @@ class Input
 	/**
 	 * Fetch an item from the SERVER array
 	 *
-	 * @param   string  The index key
-	 * @param   mixed   The default value
+	 * @param   string  $index    The index key
+	 * @param   mixed   $default  The default value
 	 * @return  string|array
 	 */
 	public static function server($index = null, $default = null)
@@ -483,6 +492,8 @@ class Input
 	/**
 	 * Fetch a item from the HTTP request headers
 	 *
+	 * @param   mixed $index
+	 * @param   mixed $default
 	 * @return  array
 	 */
 	public static function headers($index = null, $default = null)
@@ -513,7 +524,7 @@ class Input
 			}
 		}
 
-		return empty($headers) ? $default : ((func_num_args() === 0) ? $headers : \Arr::get($headers, $index, $default));
+		return empty($headers) ? $default : ((func_num_args() === 0) ? $headers : \Arr::get(array_change_key_case($headers), strtolower($index), $default));
 	}
 
 	/**
@@ -525,7 +536,7 @@ class Input
 	{
 		static::$input = array_merge($_GET, $_POST);
 
-		if (\Input::method() == 'PUT' or \Input::method() == 'PATCH' or \Input::method() == 'DELETE')
+		if (static::method() == 'PUT' or static::method() == 'PATCH' or static::method() == 'DELETE')
 		{
 			static::$php_input === null and static::$php_input = file_get_contents('php://input');
 			if (strpos(static::headers('Content-Type'), 'www-form-urlencoded') > 0 and \Config::get('security.form-double-urlencoded', false))
@@ -539,5 +550,16 @@ class Input
 		{
 			static::$put_patch_delete = array();
 		}
+	}
+
+	/**
+	 * Return's the query string
+	 *
+	 * @param   string $default
+	 * @return  string
+	 */
+	public static function query_string($default = '')
+	{
+		return static::server('QUERY_STRING', $default);
 	}
 }

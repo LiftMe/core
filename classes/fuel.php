@@ -3,10 +3,10 @@
  * Part of the Fuel framework.
  *
  * @package    Fuel
- * @version    1.7
+ * @version    1.8
  * @author     Fuel Development Team
  * @license    MIT License
- * @copyright  2010 - 2014 Fuel Development Team
+ * @copyright  2010 - 2016 Fuel Development Team
  * @link       http://fuelphp.com
  */
 
@@ -25,7 +25,6 @@ class FuelException extends \Exception {}
  */
 class Fuel
 {
-
 	/**
 	 * @var  string  The version of Fuel
 	 */
@@ -134,8 +133,14 @@ class Fuel
 
 		\Config::load($config);
 
+		// Disable output compression if the client doesn't support it
+		if (static::$is_cli or ! in_array('gzip', explode(', ', \Input::headers('Accept-Encoding', ''))))
+		{
+			\Config::set('ob_callback', null);
+		}
+
 		// Start up output buffering
-		static::$is_cli or ob_start(\Config::get('ob_callback', null));
+		static::$is_cli or ob_start(\Config::get('ob_callback'));
 
 		if (\Config::get('caching', false))
 		{
@@ -193,6 +198,20 @@ class Fuel
 		// like it was in versions before 1.7
 		class_exists('Redis', false) or class_alias('Redis_Db', 'Redis');
 
+		// BC FIX FOR PHP < 7.0 to make the error class available
+		if (PHP_VERSION_ID < 70000)
+		{
+			// alias the error class to the new errorhandler
+			class_alias('\Fuel\Core\Errorhandler', '\Fuel\Core\Error');
+
+			// does the app have an overloaded Error class?
+			if (class_exists('Error'))
+			{
+				// then alias that too
+				class_alias('Error', 'Errorhandler');
+			}
+		}
+
 		static::$initialized = true;
 
 		// fire any app created events
@@ -249,7 +268,7 @@ class Fuel
 				}
 			}
 			// Restart the output buffer and send the new output
-			ob_start();
+			ob_start(\Config::get('ob_callback'));
 			echo $output;
 		}
 	}
@@ -354,8 +373,19 @@ class Fuel
 	 */
 	public static function clean_path($path)
 	{
-		static $search = array(APPPATH, COREPATH, PKGPATH, DOCROOT, '\\');
-		static $replace = array('APPPATH/', 'COREPATH/', 'PKGPATH/', 'DOCROOT/', '/');
+		// framework default paths
+		static $search = array('\\', APPPATH, COREPATH, PKGPATH, DOCROOT);
+		static $replace = array('/', 'APPPATH/', 'COREPATH/', 'PKGPATH/', 'DOCROOT/');
+
+		// additional paths configured than need cleaning
+		$extra = \Config::get('security.clean_paths', array());
+		foreach ($extra as $r => $s)
+		{
+			$search[] = $s;
+			$replace[] = $r.'/';
+		}
+
+		// clean up and return it
 		return str_ireplace($search, $replace, $path);
 	}
 }
