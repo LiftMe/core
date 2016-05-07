@@ -37,7 +37,7 @@ abstract class Controller_Rest extends \Controller
 	/**
 	 * @var  integer  default response http status
 	 */
-	protected $http_status = 200;
+	protected $http_status = null;
 
 	/**
 	 * @var  string  xml basenode name
