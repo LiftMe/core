@@ -261,6 +261,37 @@ class Database_Query
 	}
 
 	/**
+	 * Executes the query on *all* database shards and returns an array containing the result from each
+	 *
+	 * @param   mixed   $db Database instance or name of instance
+	 * @return array
+	 */
+	public function execute_all_shards($db = null)
+	{
+		if ($this->_connection !== null and $db === null)
+		{
+			$db = $this->_connection;
+		}
+
+		$get_shards = \Notion\App\App::container()->get(\Notion\Domain\Interactor\Database\GetDatabaseShards::class);
+
+		$combined_results = [];
+		if ($shards = $get_shards->execute('mysqli', $db))
+		{
+			foreach ($shards as $shard)
+			{
+				$combined_results[] = $this->execute($db, $shard->get_value_high())->as_array();
+			}
+		}
+		else
+		{
+			$combined_results[] = $this->execute($db, null)->as_array(); // default if no shards
+		}
+
+		return $combined_results;
+	}
+
+	/**
 	 * Execute the current query on the given database.
 	 *
 	 * @param   mixed   $db Database instance or name of instance
@@ -281,8 +312,11 @@ class Database_Query
 		{
 			// append shard value onto the db name
 			$shard_value = $shard_value ?: $this->_shard_value;
-			if ($shard_value)
+
+			if ($shard_value !== null)
+			{
 				$db = $db . ':' . $shard_value;
+			}
 
 			// Get the database instance. If this query is a instance of
 			// Database_Query_Builder_Select then use the slave connection if configured
