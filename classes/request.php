@@ -387,7 +387,7 @@ class Request
 			{
 				$method_prefix = $this->method.'_';
 				$class = $this->controller;
-				if ($controller_override = (new Version_Loader())->get_class_name($class))
+				if (class_exists(Version_Loader::class) && ($controller_override = (new Version_Loader())->get_class_name($class)) )
 					$class = $controller_override;
 
 				// Allow override of method params from execute
