@@ -318,7 +318,7 @@ class Format
 		if ($result === false)
 		{
 			$debug_file = '/tmp/api_encode_error_' . Str::random('hexdec', 8);
-			file_put_contents($debug_file, var_export($data, true));
+			file_put_contents($debug_file, serialize($data));
 			throw new \FuelException('Could not encode response. See \'' . $debug_file . '\' for details');
 		}
 
