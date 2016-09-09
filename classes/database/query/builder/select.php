@@ -56,6 +56,11 @@ class Database_Query_Builder_Select extends \Database_Query_Builder_Where
 	protected $_last_join;
 
 	/**
+	 * @type bool whether this is a count query
+	 */
+	protected $_count;
+
+	/**
 	 * Sets the initial columns to select from.
 	 *
 	 * @param  array  $columns  column list
@@ -81,6 +86,19 @@ class Database_Query_Builder_Select extends \Database_Query_Builder_Where
 	public function distinct($value = true)
 	{
 		$this->_distinct = (bool) $value;
+
+		return $this;
+	}
+
+	/**
+	 * Enables or disables selecting only unique columns using "SELECT DISTINCT"
+	 *
+	 * @param   boolean  $value  enable or disable distinct columns
+	 * @return  $this
+	 */
+	public function count($value = true)
+	{
+		$this->_count = (bool) $value;
 
 		return $this;
 	}
@@ -418,6 +436,10 @@ class Database_Query_Builder_Select extends \Database_Query_Builder_Where
 			// Select all columns
 			$query .= '*';
 		}
+		elseif($this->_count)
+		{
+			$query .= 'count(*) as count';
+		}
 		else
 		{
 			// Select all columns
@@ -454,22 +476,25 @@ class Database_Query_Builder_Select extends \Database_Query_Builder_Where
 			$query .= ' HAVING '.$this->_compile_conditions($db, $this->_having);
 		}
 
-		if ( ! empty($this->_order_by))
+		if (!$this->_count)
 		{
-			// Add sorting
-			$query .= ' '.$this->_compile_order_by($db, $this->_order_by);
-		}
+			if ( ! empty($this->_order_by))
+			{
+				// Add sorting
+				$query .= ' '.$this->_compile_order_by($db, $this->_order_by);
+			}
 
-		if ($this->_limit !== NULL)
-		{
-			// Add limiting
-			$query .= ' LIMIT '.$this->_limit;
-		}
+			if ($this->_limit !== NULL)
+			{
+				// Add limiting
+				$query .= ' LIMIT '.$this->_limit;
+			}
 
-		if ($this->_offset !== NULL)
-		{
-			// Add offsets
-			$query .= ' OFFSET '.$this->_offset;
+			if ($this->_offset !== NULL)
+			{
+				// Add offsets
+				$query .= ' OFFSET '.$this->_offset;
+			}
 		}
 
 		return $query;
