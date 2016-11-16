@@ -280,12 +280,18 @@ class Database_Query
 		{
 			foreach ($shards as $shard)
 			{
-				$combined_results[] = $this->execute($db, $shard->get_value_high())->as_array();
+				$execute = $this->execute($db, $shard->get_value_high());
+
+				if ($this->type() == DB::SELECT)
+					$combined_results[] = $execute->as_array();
 			}
 		}
 		else
 		{
-			$combined_results[] = $this->execute($db, null)->as_array(); // default if no shards
+			$execute = $this->execute($db, null); // default if no shards
+
+			if ($this->type() == DB::SELECT)
+				$combined_results[] = $execute->as_array();
 		}
 
 		return $combined_results;
