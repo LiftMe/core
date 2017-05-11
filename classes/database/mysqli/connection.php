@@ -13,7 +13,7 @@
 
 namespace Fuel\Core;
 
-use Notion\Log\Log;
+use Notion\App\Log;
 
 class Database_MySQLi_Connection extends \Database_Connection
 {
