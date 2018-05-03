@@ -345,6 +345,8 @@ class Cli
 
 			while ($time > 0)
 			{
+				pcntl_signal_dispatch();
+
 				fwrite(static::$STDOUT, $time.'... ');
 				sleep(1);
 				$time--;
