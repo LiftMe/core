@@ -548,6 +548,9 @@ class Pagination
 				$this->config['calculated_page'] = 1;
 			}
 		}
+		
+		if (!$this->config['calculated_page'])
+			$this->config['calculated_page'] = 1;
 
 		// the current page must be zero based so that the offset for page 1 is 0.
 		$this->config['offset'] = ($this->config['calculated_page'] - 1) * $this->config['per_page'];
