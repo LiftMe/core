@@ -144,6 +144,12 @@ class Database_MySQLi_Connection extends \Database_Connection
 			$this->set_charset($this->_config['charset']);
 		}
 
+		// Update the connection if different from the server (UTC)
+		if (date_default_timezone_get() !== 'UTC')
+		{
+			$this->set_timezone();
+		}
+
 		static::$_current_databases[$this->_connection_id] = $database;
 	}
 
@@ -590,6 +596,22 @@ class Database_MySQLi_Connection extends \Database_Connection
 	protected function rollback_savepoint($name) {
 		$this->query(0, 'ROLLBACK TO SAVEPOINT LEVEL'.$name, false);
 		return true;
+	}
+
+	/**
+	 * Sets the timezone of the MySQL connection to the current PHP timezone
+	 */
+	protected function set_timezone()
+	{
+		$now = new \DateTime();
+		$minutes = $now->getOffset() / 60;
+		$sign = ($minutes < 0 ? -1 : 1);
+		$minutes = abs($minutes);
+		$hours = floor($minutes / 60);
+		$minutes -= $hours * 60;
+		$offset = sprintf('%+d:%02d', $hours * $sign, $minutes);
+
+		$this->query(0, 'SET time_zone = \'' . $offset . '\'', false);
 	}
 
 	/**
