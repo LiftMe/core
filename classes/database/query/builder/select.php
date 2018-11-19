@@ -61,6 +61,11 @@ class Database_Query_Builder_Select extends \Database_Query_Builder_Where
 	protected $_count;
 
 	/**
+	 * @var bool whether to calculate total number of rows for a query
+	 */
+	protected $calc_found_rows = false;
+
+	/**
 	 * Sets the initial columns to select from.
 	 *
 	 * @param  array  $columns  column list
@@ -99,6 +104,20 @@ class Database_Query_Builder_Select extends \Database_Query_Builder_Where
 	public function count($value = true)
 	{
 		$this->_count = (bool) $value;
+
+		return $this;
+	}
+
+	/**
+	 * Sets or returns the calc found rows setting for this query
+	 *
+	 * @param bool|null $value
+	 * @return $this
+	 */
+	public function calc_found_rows($value)
+	{
+		if (is_bool($value))
+			$this->calc_found_rows = $value;
 
 		return $this;
 	}
@@ -424,6 +443,9 @@ class Database_Query_Builder_Select extends \Database_Query_Builder_Where
 
 		// Start a selection query
 		$query = 'SELECT ';
+
+		if ($this->calc_found_rows)
+			$query .= 'SQL_CALC_FOUND_ROWS ';
 
 		if ($this->_distinct === TRUE)
 		{
