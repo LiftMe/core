@@ -366,6 +366,7 @@ class Database_Query
 			$cache_key = empty($this->_cache_key) ?
 				'db.'.md5('Database_Connection::query("'.$db.'", "'.$sql.'")') : $this->_cache_key;
 			$cache = \Cache::forge($cache_key);
+
 			try
 			{
 				$result = $cache->get();
@@ -377,6 +378,12 @@ class Database_Query
 		// Execute the query
 		\DB::$query_count++;
 		$result = $db->query($this->_type, $sql, $this->_as_object);
+
+		// If using the DB:: classes with a volatile query, the ORM cache should be cleared because it might now be wrong
+		if ($this->_type !== \DB::SELECT)
+		{
+			\Notion\Db\Model::destroy_cache();
+		}
 
 		// Cache the result if needed
 		if (isset($cache) and ($this->_cache_all or $result->count()))
